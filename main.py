@@ -15,7 +15,7 @@ from PyQt5.QtCore import QTimer
 class YoloSafetyMonitor(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("🦺 Giám sát An toàn Lao động với YOLOv8")
+        self.setWindowTitle("🦺 Safety Monitoring with YOLOv8")
         self.model = None
         self.class_names = []
         self.cap = None
@@ -23,7 +23,7 @@ class YoloSafetyMonitor(QWidget):
         self.timer.timeout.connect(self.update_frame)
 
         self.video_label = QLabel("🔴 Camera Feed")
-        # Remove single violation_label and replace with scroll area for multiple images
+
         self.violation_scroll_area = QScrollArea()
         self.violation_scroll_area.setWidgetResizable(True)
         self.violation_container = QWidget()
@@ -33,13 +33,11 @@ class YoloSafetyMonitor(QWidget):
 
         self.violation_log = QListWidget()
 
-        self.load_model_btn = QPushButton("📦 Tải Mô Hình")
-        self.load_video_btn = QPushButton("📂 Mở Video")
-        self.open_cam_btn = QPushButton("🎥 Mở Camera")
-        self.stop_btn = QPushButton("⛔ Dừng")
-        # Remove QTextEdit for class_text and replace with scroll area for violation folder images
-        # self.class_text = QTextEdit()
-        # self.class_text.setReadOnly(True)
+        self.load_model_btn = QPushButton("📦 Load Model")
+        self.load_video_btn = QPushButton("📂 Open Video")
+        self.open_cam_btn = QPushButton("🎥 Open Camera")
+        self.stop_btn = QPushButton("⛔ Stop")
+
         self.violations_folder_scroll_area = QScrollArea()
         self.violations_folder_scroll_area.setWidgetResizable(True)
         self.violations_folder_container = QWidget()
@@ -47,12 +45,9 @@ class YoloSafetyMonitor(QWidget):
         self.violations_folder_container.setLayout(self.violations_folder_grid)
         self.violations_folder_scroll_area.setWidget(self.violations_folder_container)
 
-        # Layout
         layout = QGridLayout()
         layout.addWidget(self.video_label, 0, 0)
-        self.video_label.setFixedSize(1000, 800)  # hoặc bất kỳ kích thước nào bạn muốn
-
-        # Add scroll area for violation images instead of single label
+        self.video_label.setFixedSize(1000, 800)
         layout.addWidget(self.violation_scroll_area, 0, 1)
 
         btn_layout = QHBoxLayout()
@@ -62,9 +57,9 @@ class YoloSafetyMonitor(QWidget):
         btn_layout.addWidget(self.stop_btn)
 
         layout.addLayout(btn_layout, 1, 0, 1, 2)
-        layout.addWidget(QLabel("📚 Ảnh vi phạm trong thư mục violations:"), 2, 0)
+        layout.addWidget(QLabel("📚 Violations in folder:"), 2, 0)
         layout.addWidget(self.violations_folder_scroll_area, 3, 0)
-        layout.addWidget(QLabel("📋 Nhật ký vi phạm:"), 2, 1)
+        layout.addWidget(QLabel("📋 Violation Log:"), 2, 1)
         layout.addWidget(self.violation_log, 3, 1)
 
         self.setLayout(layout)
@@ -76,11 +71,9 @@ class YoloSafetyMonitor(QWidget):
 
         os.makedirs("violations", exist_ok=True)
 
-        # Load violation folder images on startup
         self.load_violations_folder_images()
 
     def load_violations_folder_images(self):
-        # Clear existing images
         for i in reversed(range(self.violations_folder_grid.count())):
             widget_to_remove = self.violations_folder_grid.itemAt(i).widget()
             if widget_to_remove is not None:
@@ -90,7 +83,6 @@ class YoloSafetyMonitor(QWidget):
         row = 0
         col = 0
 
-        # List all image files in violations folder
         image_extensions = (".jpg", ".jpeg", ".png", ".bmp", ".gif")
         files = [f for f in os.listdir("violations") if f.lower().endswith(image_extensions)]
         files.sort()
@@ -107,20 +99,16 @@ class YoloSafetyMonitor(QWidget):
                 row += 1
 
     def load_model(self):
-        model_path, _ = QFileDialog.getOpenFileName(self, "Chọn mô hình YOLOv8 (.pt)", "", "Model Files (*.pt)")
+        model_path, _ = QFileDialog.getOpenFileName(self, "Select YOLOv8 Model (.pt)", "", "Model Files (*.pt)")
         if model_path:
             try:
                 self.model = YOLO(model_path)
                 self.class_names = self.model.names
-                # No longer set class_text since replaced by images
-                # self.class_text.setText("\n".join([f"{i}: {name}" for i, name in self.class_names.items()]))
             except Exception as e:
-                # No longer set class_text
-                # self.class_text.setText(f"Lỗi khi load model:\n{str(e)}")
                 pass
 
     def load_video(self):
-        video_path, _ = QFileDialog.getOpenFileName(self, "Chọn video", "", "Video Files (*.mp4 *.avi)")
+        video_path, _ = QFileDialog.getOpenFileName(self, "Select Video", "", "Video Files (*.mp4 *.avi)")
         if video_path:
             self.cap = cv2.VideoCapture(video_path)
             self.timer.start(30)
@@ -140,7 +128,7 @@ class YoloSafetyMonitor(QWidget):
         violations = []
 
         for box in result.boxes:
-            if int(box.cls[0]) == 0:  # person
+            if int(box.cls[0]) == 0:
                 persons.append(box)
 
         for person in persons:
@@ -178,19 +166,18 @@ class YoloSafetyMonitor(QWidget):
                 violations = self.check_violation(result)
                 annotated_frame = result.plot()
 
-                # Clear previous violation images from grid
                 for i in reversed(range(self.violation_grid.count())):
                     widget_to_remove = self.violation_grid.itemAt(i).widget()
                     if widget_to_remove is not None:
                         widget_to_remove.setParent(None)
 
-                col_count = 3  # Number of columns in grid
+                col_count = 3
                 row = 0
                 col = 0
 
                 for x1, y1, x2, y2, missing in violations:
                     cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
-                    label = f"None: {', '.join(missing)}"
+                    label = f"Missing: {', '.join(missing)}"
                     cv2.putText(annotated_frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
 
                     person_crop = frame[y1:y2, x1:x2]
@@ -199,7 +186,6 @@ class YoloSafetyMonitor(QWidget):
                     filename = f"violations/{timestamp}_{file_id}.jpg"
                     cv2.imwrite(filename, person_crop)
 
-                    # Create QLabel for each violation image and add to grid
                     violation_pixmap = QPixmap(filename).scaled(160, 120)
                     violation_img_label = QLabel()
                     violation_img_label.setPixmap(violation_pixmap)
@@ -215,18 +201,11 @@ class YoloSafetyMonitor(QWidget):
                 h, w, ch = rgb_image.shape
                 bytes_per_line = ch * w
                 qimg = QImage(rgb_image.data, w, h, bytes_per_line, QImage.Format_RGB888)
-                pixmap = QPixmap.fromImage(qimg)
-                #self.video_label.setPixmap(pixmap)
-                scaled_pixmap = pixmap.scaled(self.video_label.size(), aspectRatioMode=1)  # 1 = Qt.KeepAspectRatio
-                self.video_label.setPixmap(scaled_pixmap)
-
-            else:
-                self.video_label.setText("⚠️ Chưa có mô hình được tải.")
+                self.video_label.setPixmap(QPixmap.fromImage(qimg))
 
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = YoloSafetyMonitor()
-    window.resize(1200, 800)
     window.show()
     sys.exit(app.exec_())
