@@ -50,6 +50,8 @@ class YoloSafetyMonitor(QWidget):
         # Layout
         layout = QGridLayout()
         layout.addWidget(self.video_label, 0, 0)
+        self.video_label.setFixedSize(1000, 800)  # hoặc bất kỳ kích thước nào bạn muốn
+
         # Add scroll area for violation images instead of single label
         layout.addWidget(self.violation_scroll_area, 0, 1)
 
@@ -188,7 +190,7 @@ class YoloSafetyMonitor(QWidget):
 
                 for x1, y1, x2, y2, missing in violations:
                     cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
-                    label = f"Thiếu: {', '.join(missing)}"
+                    label = f"None: {', '.join(missing)}"
                     cv2.putText(annotated_frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
 
                     person_crop = frame[y1:y2, x1:x2]
@@ -214,7 +216,10 @@ class YoloSafetyMonitor(QWidget):
                 bytes_per_line = ch * w
                 qimg = QImage(rgb_image.data, w, h, bytes_per_line, QImage.Format_RGB888)
                 pixmap = QPixmap.fromImage(qimg)
-                self.video_label.setPixmap(pixmap)
+                #self.video_label.setPixmap(pixmap)
+                scaled_pixmap = pixmap.scaled(self.video_label.size(), aspectRatioMode=1)  # 1 = Qt.KeepAspectRatio
+                self.video_label.setPixmap(scaled_pixmap)
+
             else:
                 self.video_label.setText("⚠️ Chưa có mô hình được tải.")
 
